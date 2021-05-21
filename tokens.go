@@ -14,6 +14,15 @@ const (
     tokenTTL = 300
 )
 
+/* Expiration time (in seconds) */
+var (
+    expireTime int = 300
+)
+
+func TokensSetExpirationTime( ex int ) {
+    expireTime = ex
+}
+
 /* The token properties */
 type TOKENS struct {
     Id           string            `json:"id"`
@@ -42,7 +51,7 @@ func TokensClean() {
     now := epoch()
     if( len(Tokens)>0 ) {
         for i:=0; i<len(Tokens); i++ {
-            if( (Tokens[i].Updated+int64(*expire)) < now ) {
+            if( (Tokens[i].Updated+int64(expireTime)) < now ) {
                 log.Println("Remove token "+Tokens[i].Token)
                 Tokens = append(Tokens[:i], Tokens[i+1:]...)
             }
@@ -65,7 +74,7 @@ func TokensValidate( userToken string ) bool {
     if( len(Tokens)>0 ) {
         for i:=0; i<len(Tokens); i++ {
             if( (user==Tokens[i].User) && (token==Tokens[i].Token) ) {
-                if( (Tokens[i].Updated+int64(*expire)) < now ) {
+                if( (Tokens[i].Updated+int64(expireTime)) < now ) {
                     log.Println("Remove token "+Tokens[i].Token)
                     Tokens = append(Tokens[:i], Tokens[i+1:]...)
                 } else {
@@ -131,7 +140,7 @@ func GetTokensId(c *gin.Context) {
     if( len(Tokens)>0 ) {
         for i:=0; i<len(Tokens); i++ {
             if( id == Tokens[i].Id ) {
-                if( (Tokens[i].Updated+int64(*expire)) < now ) {
+                if( (Tokens[i].Updated+int64(expireTime)) < now ) {
                     log.Println("Remove token "+Tokens[i].Token)
                     Tokens = append(Tokens[:i], Tokens[i+1:]...)
                 } else {
@@ -267,4 +276,24 @@ func GenerateToken(user string, RemoteAddr string) TOKENS {
     log.Println("Create token "+token+" for user "+user)
     Tokens = append(Tokens, item)
     return item
+}
+
+// Replace p regex pattern with r string in s string
+func replace( p string, r string, s string) string {
+    var re = regexp.MustCompile(p)
+    return re.ReplaceAllString(s, r)
+}
+
+// Return current epoch time (secs)
+func epoch() int64 {
+    now := time.Now()
+    secs := now.Unix()
+    //nanos := now.UnixNano()
+    //millis := nanos/1000000
+    return secs
+}
+
+// genuuid returns a valid uniq uuid under a string
+func genuuid() (string) {
+    return uuid.New().String()
 }
